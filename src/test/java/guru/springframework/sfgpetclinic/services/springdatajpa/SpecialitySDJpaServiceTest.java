@@ -13,7 +13,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class SpecialitySDJpaServiceTest {
@@ -40,6 +45,11 @@ class SpecialitySDJpaServiceTest {
     void findByIdTest() {
         //given
         Speciality speciality = new Speciality();
+
+        // changing this syntax to bdd
+        // when(specialtyRepository.findById(1L)).thenReturn(Optional.of(speciality));
+        // given replaces when
+        // willReturn replaces thenReturn
         given(specialtyRepository.findById(1L)).willReturn(Optional.of(speciality));
 
         //when
@@ -47,7 +57,13 @@ class SpecialitySDJpaServiceTest {
 
         //then
         assertThat(foundSpecialty).isNotNull();
+        // verify(specialtyRepository).findById(anyLong());
+        // then replaces verify
+        // .should() is after the object
         then(specialtyRepository).should().findById(anyLong());
+        // times defaults to 1, this is unnecessary
+        then(specialtyRepository).should(times(1)).findById(anyLong());
+        // makes sure specialtyRepository has no further interactions
         then(specialtyRepository).shouldHaveNoMoreInteractions();
     }
 
@@ -72,6 +88,7 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
+        // atLeastOnce example
         then(specialtyRepository).should(atLeastOnce()).deleteById(1L);
     }
 
@@ -82,6 +99,7 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
+        // atMost example
         then(specialtyRepository).should(atMost(5)).deleteById(1L);
     }
 
@@ -93,6 +111,7 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
+        // atLeastOnce + never examples
         then(specialtyRepository).should(atLeastOnce()).deleteById(1L);
         then(specialtyRepository).should(never()).deleteById(5L);
 

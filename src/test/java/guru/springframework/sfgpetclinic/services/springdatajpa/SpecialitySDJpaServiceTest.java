@@ -18,6 +18,12 @@ import static org.mockito.BDDMockito.*;
 @ExtendWith(MockitoExtension.class)
 class SpecialitySDJpaServiceTest {
 
+    // To test exception handling we throw expections.
+    // Test if it's bubbles up or is improperly handled.
+
+    // We have a lambda strict matcher + it did not match,
+    // (with argThat mockito isn't happy without a match),
+    // lenient = true resolves this (default is false).
     @Mock(lenient = true)
     SpecialtyRepository specialtyRepository;
 
@@ -47,6 +53,11 @@ class SpecialitySDJpaServiceTest {
 
         //then
         assertThat(foundSpecialty).isNotNull();
+        // Maybe you want to watch performance, JT hasn't had a use case for this.
+        // Run time depends on your workstation / the CI server load.
+        // For complex calculations it could be useful, prevents you from introducing performance issues.
+
+        // assert runs within 100 milliseconds
         then(specialtyRepository).should(timeout(100)).findById(anyLong());
         then(specialtyRepository).shouldHaveNoMoreInteractions();
     }
@@ -60,6 +71,8 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
+
+        // runs within 100 milliseconds and is interacted with twice
         then(specialtyRepository).should(timeout(100).times(2)).deleteById(1L);
     }
 
@@ -72,7 +85,8 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
-        then(specialtyRepository).should(timeout(10).atLeastOnce()).deleteById(1L);
+        // runs within 1 milliseconds!! called atLeastOnce()
+        then(specialtyRepository).should(timeout(1).atLeastOnce()).deleteById(1L);
     }
 
     @Test
@@ -82,6 +96,7 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
+        // couldn't chain timeout() with atMost() :-(
         then(specialtyRepository).should(atMost(5)).deleteById(1L);
     }
 
@@ -93,6 +108,7 @@ class SpecialitySDJpaServiceTest {
         service.deleteById(1l);
 
         //then
+        // runs within 200 milliseconds works atLeastOnce()
         then(specialtyRepository).should(timeout(200).atLeastOnce()).deleteById(1L);
         then(specialtyRepository).should(never()).deleteById(5L);
 
@@ -109,13 +125,17 @@ class SpecialitySDJpaServiceTest {
 
     @Test
     void testDoThrow() {
+        // the typical way to test exceptions
+        // new RuntimeException("boom") is thrown when specialtyRepository.delete(any()) is called
         doThrow(new RuntimeException("boom")).when(specialtyRepository).delete(any());
-
+        // verify
         assertThrows(RuntimeException.class, () -> specialtyRepository.delete(new Speciality()));
 
+        // verify
         verify(specialtyRepository).delete(any());
     }
 
+    // BDD approach
     @Test
     void testFindByIDThrows() {
         given(specialtyRepository.findById(1L)).willThrow(new RuntimeException("boom"));
@@ -125,8 +145,10 @@ class SpecialitySDJpaServiceTest {
         then(specialtyRepository).should().findById(1L);
     }
 
+    // BDD approach, handling problem if delete is called + it's not returning a value
     @Test
     void testDeleteBDD() {
+        // you can't lead off the given, so a slightly different approach
         willThrow(new RuntimeException("boom")).given(specialtyRepository).delete(any());
 
         assertThrows(RuntimeException.class, () -> specialtyRepository.delete(new Speciality()));
@@ -137,6 +159,7 @@ class SpecialitySDJpaServiceTest {
     @Test
     void testSaveLambda() {
         //given
+        // use final when the String doesn't change
         final String MATCH_ME = "MATCH_ME";
         Speciality speciality = new Speciality();
         speciality.setDescription(MATCH_ME);
@@ -144,7 +167,8 @@ class SpecialitySDJpaServiceTest {
         Speciality savedSpecialty = new Speciality();
         savedSpecialty.setId(1L);
 
-        //need mock to only return on match MATCH_ME string
+        // need mock to only return savedSpecialty on match of MATCH_ME string
+        // lambda argument matcher (good option to use when you are looking into the properties of an object):-
         given(specialtyRepository.save(argThat(argument -> argument.getDescription().equals(MATCH_ME)))).willReturn(savedSpecialty);
 
         //when
@@ -159,6 +183,7 @@ class SpecialitySDJpaServiceTest {
         //given
         final String MATCH_ME = "MATCH_ME";
         Speciality speciality = new Speciality();
+        // test description doesn't match in the mock below
         speciality.setDescription("Not a match");
 
         Speciality savedSpecialty = new Speciality();
@@ -171,6 +196,7 @@ class SpecialitySDJpaServiceTest {
         Speciality returnedSpecialty = service.save(speciality);
 
         //then
+        // this null as it didn't match
         assertNull(returnedSpecialty);
     }
 }
